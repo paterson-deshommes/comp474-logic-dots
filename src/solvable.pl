@@ -1,13 +1,13 @@
-isSolvable([],_).
+:- use_module(library(clpfd)).
 
-% private rule
-isSolvable([Head|Tail],Rows) :- 
+isSolvable([],_).
+isSolvable([Head|Tail],Rows) :-
         delete(Rows,0,NonZeroList),
         length(NonZeroList,Length),
         Length@>=Head,
         isSolvable(Tail,Rows).
 
-%public rule
+
 canSolve(Columns,Rows) :-
         (isSolvable(Columns,Rows),
         isSolvable(Rows,Columns),
@@ -41,6 +41,49 @@ playLogicDots(Columns,Rows) :-
         (canSolve(Columns,Rows),
         length(Columns,MaxNum),
         createBoard(MaxNum,List),
-        write(List));
+        move(Columns,Rows,List,[],Sol),
+        write(Sol));
         write('Board is not solvable').
+
+newConfig([Head|Tail],CurrentPos,WantedPos,Acc,List) :-
+         CurrentPos=\=WantedPos,
+         append([Head],Acc,TempList),
+         NewCurrentPos is CurrentPos + 1,
+         newConfig(Tail,NewCurrentPos,WantedPos,TempList,List).
+
+newConfig([Head|Tail],CurrentPos,WantedPos,Acc,List) :-
+         CurrentPos=:=WantedPos,
+         NewHead is Head-1,
+         append([NewHead],Acc,TempList),
+         reverse(TempList,ReversedList),
+         append(ReversedList,Tail,List).
+
+fufill_req(Columns,Rows,X/Y):-
+         nth1(X,Columns,ColumnsPos),
+         nth1(Y,Rows,RowsPos),
+         ColumnsPos@>0,
+         RowsPos@>0.
+
+
+move(Columns,Rows,_,TempSol,TempSol) :-
+       goal(Columns,Rows).
+move(Columns,Rows,[ColPos/RowPos|PosTail],TempSol,FinalSol) :-
+        fufill_req(Columns,Rows,ColPos/RowPos),
+        newConfig(Columns,1,ColPos,[],NewColumns),
+        newConfig(Rows,1,RowPos,[],NewRows),
+        canSolve(NewColumns,NewRows),
+        move(NewColumns,NewRows,PosTail,[ColPos/RowPos|TempSol],FinalSol).
+move(Columns,Rows,[ColPos/RowPos|PosTail],TempSol,FinalSol) :-
+        not(fufill_req(Columns,Rows,ColPos/RowPos)),
+        move(Columns,Rows,PosTail,TempSol,FinalSol).
+
+goal(Columns,Rows) :-
+        delete(Columns,0,NewColumns),
+        delete(Rows,0,NewRows),
+        length(NewColumns,ColLength),
+        length(NewRows,RowLength),
+        ColLength=:=0,
+        RowLength=:=0.
+
+
         
